@@ -132,6 +132,8 @@ SITE_ADAPTERS = {
 
 ## Adding a New Analysis Config
 
+The following example shows how to configure the engine for a **different analysis** (anti-Ukrainian sentiment). For the antisemitism research, use the ready-made `config/analysis/antisemitism_oct7.yaml`.
+
 Create `config/analysis/my_analysis.yaml`:
 ```yaml
 name: my_analysis
