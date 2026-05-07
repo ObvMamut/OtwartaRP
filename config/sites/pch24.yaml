@@ -1,0 +1,37 @@
+name: pch24
+base_url: https://pch24.pl
+encoding: utf-8
+
+discovery:
+  strategy: search
+  search:
+    url_template: "https://pch24.pl/?s={keyword}&paged={page}"
+    keywords:
+      - "żydzi"
+      - "izrael"
+      - "holokaust"
+      - "antysemityzm"
+      - "Hamas"
+      - "Gaza"
+      - "Palestyna"
+    max_pages_per_keyword: 100
+  sitemap:
+    index_url: "https://pch24.pl/sitemap_index.xml"
+    fallback: true
+
+article_url_pattern: "/[a-z0-9-]+,\\d+"
+
+rate_limit:
+  delay_seconds: 1.0
+  respect_robots_txt: true
+  user_agent: "OtwartaResearch/1.0 (academic research)"
+
+selectors:
+  title: "h1.entry-title, h1.article-title, h1"
+  author: ".author, [rel='author'], meta[name='author']"
+  date: "time[datetime], meta[property='article:published_time']"
+  body: ".entry-content, .article-content, article"
+  body_remove: ["script", "style", ".sharedaddy", ".jp-relatedposts"]
+
+playwright:
+  enabled: false

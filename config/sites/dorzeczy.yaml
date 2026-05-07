@@ -1,0 +1,29 @@
+name: dorzeczy
+base_url: https://dorzeczy.pl
+encoding: utf-8
+
+discovery:
+  strategy: pagination
+  pagination:
+    categories: [kraj, swiat, opinie, historia, rozrywka, ekonomia]
+    url_template: "https://dorzeczy.pl/{category}/{page}"
+    start_page: 1
+    max_pages: 2000
+    empty_page_selector: null
+
+article_url_pattern: "/\\d+/.*\\.html$"
+
+rate_limit:
+  delay_seconds: 2.0
+  respect_robots_txt: true
+  user_agent: "OtwartaResearch/1.0 (academic research; contact: 0x6d616d7574@gmail.com)"
+
+selectors:
+  title: "h1.art-title, h1"
+  author: ".art-author, [rel='author']"
+  date: "time[datetime], meta[property='article:published_time']"
+  body: ".art-content, article"
+  body_remove: ["script", "style", ".advertisement", ".related-articles"]
+
+playwright:
+  enabled: false

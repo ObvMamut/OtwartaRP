@@ -1,0 +1,25 @@
+name: antisemitism_oct7
+description: >
+  Scores Polish news articles 0-10 for antisemitic content,
+  used to measure change before and after October 7, 2023.
+
+keywords:
+  - "żyd"
+  - "żydzi"
+  - "izrael"
+  - "holokaust"
+  - "antysemit"
+  - "soros"
+  - "globalist"
+  - "hamas"
+  - "gaza"
+  - "palestyn"
+  - "semick"
+  - "żydokomuna"
+
+prompt_file: "antisemitism_oct7_system.txt"
+
+scoring:
+  min: 0
+  max: 10
+  field: severity_score
