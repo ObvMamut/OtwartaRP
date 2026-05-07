@@ -8,7 +8,11 @@ from fastapi.testclient import TestClient
 def reset_task_state():
     import otwarta.dashboard.server as srv
     srv._task.update({"name": "", "status": "idle", "started_at": None, "message": ""})
+    srv._log_history.clear()
+    while not srv._log_queue.empty():
+        srv._log_queue.get_nowait()
     yield
+    srv._task.update({"name": "", "status": "idle", "started_at": None, "message": ""})
 
 
 @pytest.fixture()
