@@ -43,6 +43,28 @@ def db_cmd(action: str = typer.Argument(..., help="Action: init")) -> None:
         raise typer.Exit(1)
 
 
+@app.command("dashboard")
+def dashboard_cmd(
+    port: int = typer.Option(8000, help="Port to serve the dashboard on"),
+) -> None:
+    """Launch the web dashboard in your browser."""
+    import webbrowser
+    import uvicorn
+    from otwarta.dashboard.server import create_app
+    from otwarta.config.settings import Settings
+
+    settings = Settings()
+    dash_app = create_app(
+        db_url=str(settings.database_url),
+        api_key=settings.gemini_api_key.get_secret_value(),
+    )
+
+    url = f"http://localhost:{port}"
+    typer.echo(f"Dashboard running at {url}  (Ctrl+C to stop)")
+    webbrowser.open(url)
+    uvicorn.run(dash_app, host="0.0.0.0", port=port, log_level="warning")
+
+
 # Sub-apps
 scrape_app = typer.Typer(help="Scraping commands")
 analyze_app = typer.Typer(help="Analysis commands")

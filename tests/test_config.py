@@ -18,4 +18,4 @@ def test_settings_loads_from_env(monkeypatch):
 def test_settings_raises_without_api_key(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     with pytest.raises(ValidationError):
-        Settings()
+        Settings(_env_file=None)  # type: ignore[call-arg]
