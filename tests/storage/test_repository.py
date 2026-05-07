@@ -40,7 +40,7 @@ def test_save_analysis_writes_result(db_session):
     article = get_or_create_article(db_session, url="https://example.com/art", site="pch24")
     db_session.commit()
     save_analysis(db_session, article_id=article.id, config="antisemitism_oct7",
-                  model_id="llm-model", severity_score=7.5,
+                  model_id="gemini-2.0-flash", severity_score=7.5,
                   result_json={"severity_score": 7.5, "explanation": "test"},
                   prompt_tokens=100, completion_tokens=50, cache_read_tokens=80)
     db_session.commit()
