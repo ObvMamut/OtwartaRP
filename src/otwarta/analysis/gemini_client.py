@@ -48,7 +48,10 @@ class GeminiAnalysisClient:
             generation_config={"max_output_tokens": max_tokens},
         )
 
-        raw_text = response.text if response.text else "{}"
+        try:
+            raw_text = response.text or "{}"
+        except ValueError:
+            raw_text = "{}"
         usage = response.usage_metadata
 
         try:
