@@ -1,18 +1,26 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
-from sqlalchemy.orm import Session
+
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from otwarta.storage.models import Article, AnalysisResult
+from sqlalchemy.orm import Session
+
+from otwarta.storage.models import AnalysisResult, Article
 
 
 def get_or_create_article(session: Session, url: str, site: str, **kwargs: Any) -> Article:
-    stmt = sqlite_insert(Article).values(url=url, site=site, **kwargs).on_conflict_do_nothing(index_elements=["url"])
+    stmt = (
+        sqlite_insert(Article)
+        .values(url=url, site=site, **kwargs)
+        .on_conflict_do_nothing(index_elements=["url"])
+    )
     session.execute(stmt)
     return session.query(Article).filter_by(url=url).one()
 
 
-def claim_batch(session: Session, worker_id: str, batch_size: int = 10, stale_minutes: int = 30) -> list[Article]:
-    stale_cutoff = datetime.now(timezone.utc) - timedelta(minutes=stale_minutes)
+def claim_batch(
+    session: Session, worker_id: str, batch_size: int = 10, stale_minutes: int = 30
+) -> list[Article]:
+    stale_cutoff = datetime.now(UTC) - timedelta(minutes=stale_minutes)
     unclaimed = (
         session.query(Article)
         .filter(
@@ -23,7 +31,7 @@ def claim_batch(session: Session, worker_id: str, batch_size: int = 10, stale_mi
         .all()
     )
     for article in unclaimed:
-        article.analysis_claimed_at = datetime.now(timezone.utc)
+        article.analysis_claimed_at = datetime.now(UTC)
         article.analysis_worker_id = worker_id
     session.commit()
     return unclaimed
@@ -53,5 +61,5 @@ def save_analysis(
     session.add(result)
     article = session.get(Article, article_id)
     if article:
-        article.analysis_completed_at = datetime.now(timezone.utc)
+        article.analysis_completed_at = datetime.now(UTC)
     session.commit()

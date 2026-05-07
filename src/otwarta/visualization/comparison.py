@@ -1,12 +1,10 @@
 from datetime import datetime
-from typing import Optional
 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-from otwarta.visualization.stats import mann_whitney_u, cohens_d, bootstrap_ci
+from otwarta.visualization.stats import bootstrap_ci, cohens_d, mann_whitney_u
 
 OCT_7 = datetime(2023, 10, 7)
 
@@ -14,7 +12,7 @@ OCT_7 = datetime(2023, 10, 7)
 def create_comparison_chart(
     df: pd.DataFrame,
     cutoff: datetime = OCT_7,
-    output_path: Optional[str] = None,
+    output_path: str | None = None,
 ) -> go.Figure:
     """Pre/post Oct-7 distribution comparison with stats annotation."""
     df = df.dropna(subset=["publication_date", "severity_score"]).copy()

@@ -1,9 +1,10 @@
 import re
 from datetime import date
-from typing import Optional
 from urllib.parse import urljoin, urlparse
+
 from bs4 import BeautifulSoup
 from loguru import logger
+
 from otwarta.scrapers.base import AsyncBaseScraper, ScrapedArticle
 
 SEARCH_KEYWORDS = [
@@ -57,7 +58,7 @@ class PCH24AsyncScraper(AsyncBaseScraper):
                 logger.debug(f"  Page {page}: {len(urls)} URLs")
         return list(set(all_urls))
 
-    async def parse_article(self, html: str, url: str) -> Optional[ScrapedArticle]:
+    async def parse_article(self, html: str, url: str) -> ScrapedArticle | None:
         soup = BeautifulSoup(html, "html.parser")
         title_tag = (
             soup.find("h1", class_=re.compile(r"entry-title|article-title", re.I)) or
@@ -79,8 +80,9 @@ class PCH24AsyncScraper(AsyncBaseScraper):
             )
         else:
             author = None
+        body_pattern = re.compile(r"entry[_-]content|post[_-]content|article[_-]body", re.I)
         body_tag = (
-            soup.find(class_=re.compile(r"entry[_-]content|post[_-]content|article[_-]body", re.I)) or
+            soup.find(class_=body_pattern) or
             soup.find("article") or
             soup.find(class_=re.compile(r"content|article|tekst", re.I))
         )

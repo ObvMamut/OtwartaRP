@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-from otwarta.visualization.stats import mann_whitney_u, cohens_d, bootstrap_ci
+
+from otwarta.visualization.stats import bootstrap_ci, cohens_d, mann_whitney_u
 
 
 def test_mann_whitney_detects_significant_difference():

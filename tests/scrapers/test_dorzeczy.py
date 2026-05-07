@@ -1,6 +1,7 @@
+import httpx
 import pytest
 import respx
-import httpx
+
 from otwarta.scrapers.sites.dorzeczy import DoRzeczyAsyncScraper
 
 SAMPLE_CATEGORY_HTML = """
@@ -24,7 +25,9 @@ SAMPLE_ARTICLE_HTML = """
 @respx.mock
 @pytest.mark.asyncio
 async def test_discovers_article_urls():
-    respx.get("https://dorzeczy.pl/kraj/1").mock(return_value=httpx.Response(200, text=SAMPLE_CATEGORY_HTML))
+    respx.get("https://dorzeczy.pl/kraj/1").mock(
+        return_value=httpx.Response(200, text=SAMPLE_CATEGORY_HTML)
+    )
     scraper = DoRzeczyAsyncScraper(rate_limit_delay=0)
     urls = await scraper.get_article_urls_for_page(1)
     assert "https://dorzeczy.pl/kraj/123456/test-article.html" in urls

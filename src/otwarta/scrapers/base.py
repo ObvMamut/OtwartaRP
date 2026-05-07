@@ -1,24 +1,30 @@
 import asyncio
 import json
+import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
+
 import httpx
 from bs4 import BeautifulSoup
 from loguru import logger
-from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type, before_sleep_log
-import logging
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 
 @dataclass
 class ScrapedArticle:
     url: str
     site: str
-    title: Optional[str]
-    author: Optional[str]
-    publication_date: Optional[datetime]
-    body: Optional[str]
+    title: str | None
+    author: str | None
+    publication_date: datetime | None
+    body: str | None
 
 
 class AsyncBaseScraper:
@@ -28,7 +34,9 @@ class AsyncBaseScraper:
         "września": 9, "października": 10, "listopada": 11, "grudnia": 12,
     }
 
-    def __init__(self, domain: str, rate_limit_delay: float = 1.0, user_agent: str = "OtwartaResearch/1.0"):
+    def __init__(
+        self, domain: str, rate_limit_delay: float = 1.0, user_agent: str = "OtwartaResearch/1.0"
+    ):
         self.domain = domain
         self.rate_limit_delay = rate_limit_delay
         self._semaphore = asyncio.Semaphore(1)
@@ -51,7 +59,7 @@ class AsyncBaseScraper:
             await asyncio.sleep(self.rate_limit_delay)
             return response
 
-    async def fetch_or_skip(self, url: str) -> Optional[httpx.Response]:
+    async def fetch_or_skip(self, url: str) -> httpx.Response | None:
         try:
             return await self._fetch(url)
         except httpx.HTTPStatusError as e:
@@ -60,7 +68,7 @@ class AsyncBaseScraper:
                 return None
             raise
 
-    def _parse_date(self, soup: BeautifulSoup) -> Optional[datetime]:
+    def _parse_date(self, soup: BeautifulSoup) -> datetime | None:
         # Method 1: <time datetime="...">
         time_tag = soup.find("time", attrs={"datetime": True})
         if time_tag:
@@ -92,7 +100,7 @@ class AsyncBaseScraper:
             month = self.POLISH_MONTHS.get(month_name.lower())
             if month:
                 try:
-                    return datetime(int(year), month, int(day), tzinfo=timezone.utc)
+                    return datetime(int(year), month, int(day), tzinfo=UTC)
                 except ValueError:
                     pass
         return None

@@ -1,8 +1,9 @@
 # tests/test_config.py
-import os
 import pytest
 from pydantic_core import ValidationError
+
 from otwarta.config.settings import Settings
+
 
 def test_settings_loads_from_env(monkeypatch):
     monkeypatch.setenv("LLM_API_KEY", "test-key")

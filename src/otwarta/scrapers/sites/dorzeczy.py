@@ -1,8 +1,9 @@
 import re
 from datetime import date
-from typing import Optional
+
 from bs4 import BeautifulSoup
 from loguru import logger
+
 from otwarta.scrapers.base import AsyncBaseScraper, ScrapedArticle
 
 ARTICLE_URL_RE = re.compile(r"/\d+/.*\.html$")
@@ -42,7 +43,7 @@ class DoRzeczyAsyncScraper(AsyncBaseScraper):
                 logger.debug(f"  Page {page}: {len(urls)} URLs")
         return list(set(all_urls))
 
-    async def parse_article(self, html: str, url: str) -> Optional[ScrapedArticle]:
+    async def parse_article(self, html: str, url: str) -> ScrapedArticle | None:
         soup = BeautifulSoup(html, "html.parser")
         title_tag = soup.find("h1", class_="art-title") or soup.find("h1")
         title = title_tag.get_text(strip=True) if title_tag else None

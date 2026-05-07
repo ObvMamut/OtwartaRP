@@ -1,4 +1,5 @@
 from typing import Any
+
 from otwarta.analysis.llm_client import LLMAnalysisClient
 
 

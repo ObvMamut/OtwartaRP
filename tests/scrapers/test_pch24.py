@@ -1,6 +1,7 @@
+import httpx
 import pytest
 import respx
-import httpx
+
 from otwarta.scrapers.sites.pch24 import PCH24AsyncScraper
 
 SAMPLE_SEARCH_HTML = """

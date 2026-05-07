@@ -1,8 +1,6 @@
 from datetime import date
-from typing import Optional
 
 import typer
-from loguru import logger
 
 app = typer.Typer(name="otwarta", help="Polish news antisemitism research tool")
 
@@ -10,9 +8,9 @@ app = typer.Typer(name="otwarta", help="Polish news antisemitism research tool")
 @app.command()
 def status() -> None:
     """Show scraping and analysis progress."""
-    from otwarta.storage.database import init_db, get_session
-    from otwarta.storage.models import Article, AnalysisResult
     from otwarta.config.settings import Settings
+    from otwarta.storage.database import get_session, init_db
+    from otwarta.storage.models import AnalysisResult, Article
 
     settings = Settings()
     engine = init_db(str(settings.database_url))
@@ -24,7 +22,8 @@ def status() -> None:
             typer.echo(f"Articles analyzed: {analyzed} ({100 * analyzed / total:.1f}%)")
         else:
             typer.echo(
-                "No articles yet. Run: otwarta scrape site dorzeczy --start 2022-10-07 --end 2024-10-07"
+                "No articles yet. Run: "
+                "otwarta scrape site dorzeczy --start 2022-10-07 --end 2024-10-07"
             )
 
 
@@ -32,8 +31,8 @@ def status() -> None:
 def db_cmd(action: str = typer.Argument(..., help="Action: init")) -> None:
     """Database commands. Use 'init' to create tables."""
     if action == "init":
-        from otwarta.storage.database import init_db
         from otwarta.config.settings import Settings
+        from otwarta.storage.database import init_db
 
         settings = Settings()
         db_url = str(settings.database_url)
@@ -62,10 +61,11 @@ def scrape_site(
     site_name: str = typer.Argument(..., help="Site to scrape: dorzeczy or pch24"),
     start: str = typer.Option("2022-10-07", help="Start date YYYY-MM-DD"),
     end: str = typer.Option("2024-10-07", help="End date YYYY-MM-DD"),
-    max_pages: Optional[int] = typer.Option(None, help="Max pages to scrape (for testing)"),
+    max_pages: int | None = typer.Option(None, help="Max pages to scrape (for testing)"),
 ) -> None:
     """Scrape a specific site for articles in date range."""
     import asyncio
+
     from otwarta.scrapers.sites import SITE_ADAPTERS
 
     if site_name not in SITE_ADAPTERS:
@@ -80,9 +80,9 @@ def scrape_site(
     typer.echo(f"Scraping {site_name} from {start} to {end}...")
 
     async def run() -> None:
-        from otwarta.storage.database import init_db, get_session
-        from otwarta.storage.repository import get_or_create_article
         from otwarta.config.settings import Settings
+        from otwarta.storage.database import get_session, init_db
+        from otwarta.storage.repository import get_or_create_article
 
         settings = Settings()
         engine = init_db(str(settings.database_url))
@@ -130,7 +130,7 @@ def scrape_generic(
     config: str = typer.Option(..., help="Path to site YAML config"),
     start: str = typer.Option("2022-10-07", help="Start date YYYY-MM-DD"),
     end: str = typer.Option("2024-10-07", help="End date YYYY-MM-DD"),
-    max_pages: Optional[int] = typer.Option(None, help="Max pages to scrape (for testing)"),
+    max_pages: int | None = typer.Option(None, help="Max pages to scrape (for testing)"),
 ) -> None:
     """Scrape using a generic YAML-driven site config."""
     typer.echo(f"Generic scraper with config {config} from {start} to {end}...")
@@ -150,11 +150,12 @@ def analyze_run(
 ) -> None:
     """Run analysis on scraped articles."""
     import asyncio
+
     from otwarta.analysis.generic_detector import GenericDetector
-    from otwarta.storage.database import init_db, get_session
+    from otwarta.config.settings import Settings
+    from otwarta.storage.database import get_session, init_db
     from otwarta.storage.models import Article
     from otwarta.storage.repository import save_analysis
-    from otwarta.config.settings import Settings
 
     settings = Settings()
     engine = init_db(str(settings.database_url))
@@ -211,10 +212,10 @@ def visualize_all(
 
     import pandas as pd
 
-    from otwarta.storage.database import init_db, get_session
-    from otwarta.storage.models import Article, AnalysisResult
-    from otwarta.visualization.reports import generate_report
     from otwarta.config.settings import Settings
+    from otwarta.storage.database import get_session, init_db
+    from otwarta.storage.models import AnalysisResult, Article
+    from otwarta.visualization.reports import generate_report
 
     settings = Settings()
     engine = init_db(str(settings.database_url))
@@ -244,7 +245,7 @@ def visualize_all(
 
 @visualize_app.command("time-series")
 def visualize_time_series(
-    site: Optional[str] = typer.Option(None, help="Filter by site name"),
+    site: str | None = typer.Option(None, help="Filter by site name"),
     output: str = typer.Option("data/processed", help="Output directory"),
 ) -> None:
     """Generate time-series chart of severity scores."""

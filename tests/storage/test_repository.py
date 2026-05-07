@@ -1,8 +1,9 @@
+
 import pytest
-from datetime import datetime
-from otwarta.storage.database import init_db, get_session
-from otwarta.storage.repository import get_or_create_article, save_analysis, claim_batch
-from otwarta.storage.models import Article, AnalysisResult
+
+from otwarta.storage.database import get_session, init_db
+from otwarta.storage.models import AnalysisResult
+from otwarta.storage.repository import claim_batch, get_or_create_article, save_analysis
 
 
 @pytest.fixture
@@ -14,7 +15,9 @@ def db_session(tmp_path):
 
 
 def test_get_or_create_article_creates_new(db_session):
-    article = get_or_create_article(db_session, url="https://example.com/article-1", site="dorzeczy")
+    article = get_or_create_article(
+        db_session, url="https://example.com/article-1", site="dorzeczy"
+    )
     assert article.id is not None
     assert article.url == "https://example.com/article-1"
 

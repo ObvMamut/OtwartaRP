@@ -1,0 +1,43 @@
+# Generic analysis template — copy and customize for new analyses
+name: my_analysis
+model: llm-model
+max_tokens: 1024
+
+what_to_detect: |
+  Detect and score [DESCRIBE WHAT TO DETECT] in news articles.
+  Context: [DESCRIBE THE RESEARCH CONTEXT]
+
+severity_criteria:
+  "0": "NONE: No relevant content detected."
+  "1-2": "MINIMAL: Very mild signal, no clear examples."
+  "3-4": "LOW: Uses coded language or indirect references."
+  "5-6": "MEDIUM: Explicit framing or repeated patterns."
+  "7-8": "HIGH: Direct accusations or dehumanizing language."
+  "9-10": "CRITICAL: Explicit calls to discrimination or violence."
+
+few_shot_examples:
+  - article: "Example neutral article sentence here."
+    score: 0
+    explanation: "No relevant content — neutral reporting."
+  - article: "Example mildly problematic sentence here."
+    score: 3
+    explanation: "Uses coded language but not explicitly harmful."
+  - article: "Example highly problematic sentence here."
+    score: 8
+    explanation: "Direct accusation with dehumanizing framing."
+
+output_format:
+  severity_score: float
+  severity_label: string
+  detected_patterns: list[str]
+  evidence_sentences: list[str]
+  explanation: string
+  is_relevant: bool
+
+filter:
+  keyword_filter:
+    enabled: true
+    keywords:
+      - "keyword1"
+      - "keyword2"
+    min_matches: 1

@@ -1,17 +1,15 @@
 from datetime import datetime
-from typing import Optional
 
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 OCT_7 = datetime(2023, 10, 7)
 
 
 def create_time_series_chart(
     df: pd.DataFrame,
-    site: Optional[str] = None,
-    output_path: Optional[str] = None,
+    site: str | None = None,
+    output_path: str | None = None,
     window_days: int = 30,
 ) -> go.Figure:
     """Create rolling-average time-series chart for a site or both sites combined."""

@@ -1,13 +1,16 @@
+import httpx
 import pytest
 import respx
-import httpx
+
 from otwarta.scrapers.base import AsyncBaseScraper
 
 
 @respx.mock
 @pytest.mark.asyncio
 async def test_fetch_returns_html():
-    respx.get("https://example.com/article").mock(return_value=httpx.Response(200, text="<h1>Test</h1>"))
+    respx.get("https://example.com/article").mock(
+        return_value=httpx.Response(200, text="<h1>Test</h1>")
+    )
     scraper = AsyncBaseScraper(domain="example.com", rate_limit_delay=0)
     response = await scraper._fetch("https://example.com/article")
     assert response.status_code == 200
