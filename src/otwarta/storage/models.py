@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Optional, Any
 from sqlalchemy import String, Float, Integer, DateTime, Date, JSON, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -17,14 +17,14 @@ class Article(Base):
     title: Mapped[Optional[str]] = mapped_column(String)
     author: Mapped[Optional[str]] = mapped_column(String)
     publication_date: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    scraped_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    scraped_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     body_raw: Mapped[Optional[str]] = mapped_column(String)
     body_clean: Mapped[Optional[str]] = mapped_column(String)
     analysis_claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     analysis_worker_id: Mapped[Optional[str]] = mapped_column(String)
     analysis_completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
-    analysis_result: Mapped[Optional["AnalysisResult"]] = relationship(back_populates="article")
+    analysis_results: Mapped[list["AnalysisResult"]] = relationship(back_populates="article")
 
 
 class AnalysisResult(Base):
@@ -34,7 +34,7 @@ class AnalysisResult(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     article_id: Mapped[int] = mapped_column(ForeignKey("articles.id"), nullable=False)
     analysis_config: Mapped[str] = mapped_column(String, nullable=False)
-    analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     model_id: Mapped[str] = mapped_column(String, nullable=False)
     severity_score: Mapped[Optional[float]] = mapped_column(Float)
     result_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON)
@@ -42,7 +42,7 @@ class AnalysisResult(Base):
     completion_tokens: Mapped[int] = mapped_column(Integer, default=0)
     cache_read_tokens: Mapped[int] = mapped_column(Integer, default=0)
 
-    article: Mapped["Article"] = relationship(back_populates="analysis_result")
+    article: Mapped["Article"] = relationship(back_populates="analysis_results")
 
 
 class ScrapingJob(Base):
@@ -55,5 +55,5 @@ class ScrapingJob(Base):
     status: Mapped[str] = mapped_column(String, default="running")
     articles_discovered: Mapped[int] = mapped_column(Integer, default=0)
     articles_scraped: Mapped[int] = mapped_column(Integer, default=0)
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)

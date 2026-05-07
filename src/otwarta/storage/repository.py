@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -12,7 +12,7 @@ def get_or_create_article(session: Session, url: str, site: str, **kwargs: Any) 
 
 
 def claim_batch(session: Session, worker_id: str, batch_size: int = 10, stale_minutes: int = 30) -> list[Article]:
-    stale_cutoff = datetime.utcnow() - timedelta(minutes=stale_minutes)
+    stale_cutoff = datetime.now(timezone.utc) - timedelta(minutes=stale_minutes)
     unclaimed = (
         session.query(Article)
         .filter(
@@ -23,7 +23,7 @@ def claim_batch(session: Session, worker_id: str, batch_size: int = 10, stale_mi
         .all()
     )
     for article in unclaimed:
-        article.analysis_claimed_at = datetime.utcnow()
+        article.analysis_claimed_at = datetime.now(timezone.utc)
         article.analysis_worker_id = worker_id
     session.commit()
     return unclaimed
@@ -53,5 +53,5 @@ def save_analysis(
     session.add(result)
     article = session.get(Article, article_id)
     if article:
-        article.analysis_completed_at = datetime.utcnow()
+        article.analysis_completed_at = datetime.now(timezone.utc)
     session.commit()
