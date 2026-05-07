@@ -1,17 +1,11 @@
-"""Generic YAML-config-driven analysis detector.
-
-Wraps LLMAnalysisClient with a YAML config that describes:
-  - name: identifier used as analysis_config in DB
-  - keywords: pre-filter list (same role as AntisemitismDetector.KEYWORDS)
-  - prompt_file: optional override for the system prompt filename
-"""
+"""Generic YAML-config-driven analysis detector."""
 from pathlib import Path
 from typing import Any
 
 import yaml
 from loguru import logger
 
-from otwarta.analysis.llm_client import LLMAnalysisClient
+from otwarta.analysis.gemini_client import GeminiAnalysisClient
 
 _DEFAULT_CONFIG: dict[str, Any] = {
     "name": "antisemitism_oct7",
@@ -25,14 +19,9 @@ _DEFAULT_CONFIG: dict[str, Any] = {
 
 
 class GenericDetector:
-    """Detector driven by a YAML analysis config file.
-
-    Falls back to the built-in antisemitism config if the YAML doesn't exist.
-    """
-
-    def __init__(self, config_path: str, api_key: str, model: str = "llm-model"):
+    def __init__(self, config_path: str, api_key: str, model: str = "gemini-2.0-flash"):
         self.config = self._load_config(config_path)
-        self.client = LLMAnalysisClient(api_key=api_key, model=model)
+        self.client = GeminiAnalysisClient(api_key=api_key, model=model)
         self._keywords: list[str] = self.config.get("keywords", [])
 
     def _load_config(self, config_path: str) -> dict[str, Any]:

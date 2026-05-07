@@ -160,7 +160,7 @@ def analyze_run(
     settings = Settings()
     engine = init_db(str(settings.database_url))
     detector = GenericDetector(
-        config_path=config, api_key=settings.llm_api_key.get_secret_value()
+        config_path=config, api_key=settings.gemini_api_key.get_secret_value()
     )
 
     async def run() -> None:
