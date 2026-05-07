@@ -1,6 +1,6 @@
 from typing import Any
 
-from otwarta.analysis.llm_client import LLMAnalysisClient
+from otwarta.analysis.gemini_client import GeminiAnalysisClient
 
 
 class AntisemitismDetector:
@@ -11,7 +11,7 @@ class AntisemitismDetector:
     ]
 
     def __init__(self, api_key: str):
-        self.client = LLMAnalysisClient(api_key=api_key)
+        self.client = GeminiAnalysisClient(api_key=api_key)
 
     def passes_keyword_filter(self, body: str) -> bool:
         body_lower = body.lower()

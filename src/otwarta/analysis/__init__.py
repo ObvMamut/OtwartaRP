@@ -1,4 +1,4 @@
 from otwarta.analysis.antisemitism_detector import AntisemitismDetector
-from otwarta.analysis.llm_client import LLMAnalysisClient
+from otwarta.analysis.gemini_client import GeminiAnalysisClient
 
-__all__ = ["LLMAnalysisClient", "AntisemitismDetector"]
+__all__ = ["GeminiAnalysisClient", "AntisemitismDetector"]
