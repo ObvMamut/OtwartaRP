@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "otwarta-pre-post-7oct"
+version = "0.1.0"
+description = "Antisemitism research: Polish right-wing media before and after Oct 7 2023"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx[asyncio]>=0.27",
+    "beautifulsoup4>=4.12",
+    "playwright>=1.44",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
+    "pandas>=2.2",
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "plotly>=5.22",
+    "matplotlib>=3.9",
+    "kaleido>=0.2",
+    "typer>=0.12",
+    "loguru>=0.7",
+    "tenacity>=8.3",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "jupyterlab>=4.2",
+]
+
+[project.scripts]
+otwarta = "otwarta.cli.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/otwarta"]
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/otwarta"]
