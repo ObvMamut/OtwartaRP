@@ -1,179 +1,134 @@
-# INSTRUCTIONS.md — How to Use This System
+# How to Use This System
 
 ## Prerequisites
 
-- Python 3.14 (system: `/usr/bin/python3`)
-- uv (`~/.local/bin/uv`)
-- LLM API key (required for analysis phase only)
-- ~5GB disk space
-- ~24–48h runtime for full scrape + analysis of 2 years
+- Python ≥ 3.12 and [uv](https://docs.astral.sh/uv/)
+- [Ollama](https://ollama.com/) running locally, with the scoring models pulled:
+  ```bash
+  ollama pull llama3.1        # primary scorer
+  ollama pull mistral-nemo    # secondary "confirmation" scorer
+  ```
+- A few GB of disk space. A full two-year scrape takes many hours because of crawl delays
+  (dorzeczy.pl requires 2 s between requests).
 
 ## Setup
 
 ```bash
-cd /home/mamut/all/programming/otwarta-pre-post-7oct
 uv sync
 uv run playwright install chromium
-cp .env.example .env
-# Edit .env: add LLM_API_KEY=...
+cp .env.example .env     # optional — every setting has a default
 uv run otwarta db init
 ```
 
+### Settings (`.env` or environment variables)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | `sqlite:///./data/raw/otwarta.db` | SQLite database (WAL mode) |
+| `LOG_LEVEL` | `INFO` | loguru level |
+| `RATE_LIMIT_DORZECZY` | `2.0` | seconds between requests (robots.txt) |
+| `RATE_LIMIT_PCH24` | `1.0` | seconds between requests |
+| `MAX_ANALYSIS_WORKERS` | `4` | concurrent Ollama requests |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server |
+| `PRIMARY_MODEL` | `llama3.1` | model that scores every article |
+| `SECONDARY_MODEL` | `mistral-nemo` | re-scores articles the primary scores below 2; the higher score is kept |
+
 ---
 
-## End-to-End: Oct 7 Research
-
-**Estimated timeline:** 10min setup · 24–48h scraping · 4–8h analysis · 5min visualization
+## End-to-end: the Oct 7 study
 
 ```bash
 # 1. Initialize DB
 uv run otwarta db init
 
 # 2. Scrape (separate terminals, run in parallel)
-# Terminal 1:
 uv run otwarta scrape site dorzeczy --start 2022-10-07 --end 2024-10-07
-
-# Terminal 2:
-uv run otwarta scrape site pch24 --start 2022-10-07 --end 2024-10-07
+uv run otwarta scrape site pch24    --start 2022-10-07 --end 2024-10-07
 
 # 3. Monitor
 uv run otwarta status
 
-# 4. Analyze (can start while scraping is running)
-uv run otwarta analyze run \
-    --config config/analysis/antisemitism_oct7.yaml \
-    --workers 8 \
-    --resume
+# 4. Analyze (can start while scraping is running; resumes by default)
+uv run otwarta analyze run --config config/analysis/antisemitism_oct7.yaml --workers 4
 
 # 5. Visualize
 uv run otwarta visualize all --output data/processed/
+uv run otwarta visualize stats
+uv run python scripts/export_charts.py   # static PNGs → data/processed/charts/
+uv run python scripts/export_stats.py    # aggregated CSVs → data/processed/
 
-# 6. Open report
-xdg-open data/processed/report.html
+# Or drive everything from the browser:
+uv run otwarta dashboard
 ```
+
+### How each site is discovered
+
+- **dorzeczy.pl**: walks the weekly magazine archive at `tygodnik.dorzeczy.pl/archiwum`
+  (one page per issue) and collects the article links of every issue in the date range.
+- **pch24.pl**: the WordPress search is JavaScript-rendered, so discovery walks the
+  `articles-sitemap_N.xml` files listed in `/sitemap.xml`, newest first. Sitemap `<lastmod>`
+  is a modification date, so the final date filter uses the publication date parsed from
+  the article HTML.
 
 ---
 
-## Adding a New Site
+## Adding a new site
 
-### Step 1: Create YAML config at `config/sites/my_site.yaml`
+Write a Python adapter in `src/otwarta/scrapers/sites/my_site.py` that subclasses
+`AsyncBaseScraper` and implements the three site methods:
 
-```yaml
-name: my_site
-base_url: https://my-site.pl
-encoding: utf-8
-
-discovery:
-  strategy: pagination               # pagination | sitemap | search
-  pagination:
-    url_template: "https://my-site.pl/news/{page}"
-    start_page: 1
-    max_pages: 500
-    articles_per_page: 15
-    empty_page_selector: ".no-results"
-
-article_url_pattern: "/\\d{4}/\\d{2}/\\d{2}/"   # regex to identify article URLs
-
-rate_limit:
-  delay_seconds: 1.5
-  respect_robots_txt: true
-  user_agent: "OtwartaResearch/1.0"
-
-selectors:
-  title: "h1.article-title, h1"
-  author: ".author-name, [rel='author'], meta[name='author']"
-  date: "time[datetime], meta[property='article:published_time']"
-  body: ".article-content, .entry-content, article"
-  body_remove: ["script", "style", ".advertisement"]
-
-date:
-  methods:
-    - type: html_tag
-      selector: "time"
-      attribute: datetime
-    - type: meta_tag
-      property: "article:published_time"
-    - type: json_ld
-    - type: regex
-      pattern: '(\d{1,2}\s+(?:stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|października|listopada|grudnia)\s+\d{4})'
-  timezone: Europe/Warsaw
-
-playwright:
-  enabled: false
-  wait_for_selector: ".article-content"
-  headless: true
-```
-
-### Step 2: (Optional) Python adapter for non-standard sites
-
-Create `src/otwarta/scrapers/sites/my_site.py`:
 ```python
-from otwarta.scrapers.base import AsyncBaseScraper
-from otwarta.scrapers.engine import ScrapedArticle
+from collections.abc import AsyncGenerator
+from datetime import date
 
-class MySiteAdapter(AsyncBaseScraper):
-    async def parse_article(self, html: str, url: str) -> ScrapedArticle | None:
-        ...  # custom parsing
+from otwarta.scrapers.base import AsyncBaseScraper, ScrapedArticle
 
-    async def get_article_urls_for_page(self, page: int) -> list[str]:
-        ...  # custom pagination
+
+class MySiteAsyncScraper(AsyncBaseScraper):
+    def __init__(self, rate_limit_delay: float = 1.5):
+        super().__init__(domain="my-site.pl", rate_limit_delay=rate_limit_delay)
+
+    async def discover_urls_in_range(self, start_date: date, end_date: date) -> list[str]: ...
+
+    async def scrape_in_range(
+        self, start_date: date, end_date: date
+    ) -> AsyncGenerator[ScrapedArticle, None]: ...
+
+    async def parse_article(self, html: str, url: str) -> ScrapedArticle | None: ...
 ```
 
-Register in `src/otwarta/scrapers/sites/__init__.py`:
+`AsyncBaseScraper` provides robots.txt handling, per-domain rate limiting, retries
+(`fetch_or_skip`) and a date-parsing cascade (time tag → Polish month regex → meta → JSON-LD).
+Register the class in `src/otwarta/scrapers/sites/__init__.py`:
+
 ```python
 SITE_ADAPTERS = {
     "dorzeczy": DoRzeczyAsyncScraper,
     "pch24": PCH24AsyncScraper,
-    "my_site": MySiteAdapter,  # add here
+    "my_site": MySiteAsyncScraper,
 }
 ```
 
+> The YAML site configs in `config/sites/` document each site's structure, but
+> `otwarta scrape generic` (fully YAML-driven scraping) is **not implemented yet**.
+
 ---
 
-## Adding a New Analysis Config
+## Adding a new analysis
 
-The following example shows how to configure the engine for a **different analysis** (anti-Ukrainian sentiment). For the antisemitism research, use the ready-made `config/analysis/antisemitism_oct7.yaml`.
+The analysis side *is* config-driven. Copy `config/analysis/generic_template.yaml`, describe
+what to detect, the 0–10 severity rubric, few-shot examples and a keyword pre-filter, then:
 
-Create `config/analysis/my_analysis.yaml`:
-```yaml
-name: my_analysis
-model: llm-model
-max_tokens: 1024
-
-what_to_detect: |
-  Detect and score anti-Ukrainian sentiment in Polish news articles.
-
-severity_criteria:
-  0: "No anti-Ukrainian sentiment detected"
-  1-2: "Mildly critical of Ukrainian policy, no dehumanization"
-  3-4: "Uses loaded historical references rhetorically"
-  5-6: "Dehumanizing metaphors, blames civilian Ukrainians"
-  7-8: "Explicit calls to restrict Ukrainian refugees"
-  9-10: "Explicit dehumanization or calls for expulsion"
-
-few_shot_examples:
-  - article: "Ukraińcy muszą wrócić do domu i walczyć."
-    score: 4
-    explanation: "Frames war service as obligation but not dehumanizing"
-
-output_format:
-  severity_score: float
-  severity_label: string
-  detected_patterns: list[str]
-  evidence_sentences: list[str]
-  explanation: string
-  is_relevant: bool
-
-filter:
-  keyword_filter:
-    enabled: true
-    keywords: ["ukrainiec", "ukraińc", "wołyń", "banderowiec"]
-    min_matches: 1
+```bash
+uv run otwarta analyze run --config config/analysis/my_analysis.yaml
 ```
 
+Results are stored per `(article, analysis_config)`, so several analyses can coexist in the
+same database.
+
 ---
 
-## Interpreting Scores
+## Interpreting scores
 
 | Score | Label    | Meaning |
 |-------|----------|---------|
@@ -184,31 +139,18 @@ filter:
 | 7–8   | HIGH     | Direct accusations, dehumanizing language |
 | 9–10  | CRITICAL | Explicit slurs, calls for discrimination |
 
-## Statistical Output
+Articles whose body contains none of the configured keywords are stored with score 0 without
+calling the model (in the Oct 7 study this was 77 % of the corpus).
 
-- **Mann-Whitney U test**: p < 0.05 = significant shift in distributions pre/post Oct 7
-- **Cohen's d**: effect size (small <0.2, medium 0.5, large >0.8)
-- **95% Bootstrap CI**: confidence interval on mean score difference
-- **Monthly rolling average**: 30-day rolling mean severity with 95% CI band
+## Statistical output
 
-## Known Limitations
+- **Mann-Whitney U** (two-sided): p < 0.05 means the pre/post distributions differ.
+- **Cohen's d**: effect size (≈0.2 small, 0.5 medium, 0.8 large).
+- **95 % bootstrap CI** on the post-period mean.
 
-- **dorzeczy.pl paywall**: truncated articles may score lower (filter by `body_clean` length)
-- **pch24.pl category 403**: discovery uses search + sitemap; some articles may be missed
-- **Date parsing failures**: articles with NULL `publication_date` excluded from time-series
-- **LLM scoring variance**: same article may vary ±1 point; system prompt includes "when uncertain, score lower"
-- **Memory for 100k articles**: use `yield_per()` for bulk reads to avoid OOM
+## Known limitations
 
-## Validate Scores Before Trusting at Scale
-
-```bash
-# Export 50 random articles for manual review
-uv run otwarta analyze export --sample 50 --output data/validation_sample.csv
-
-# Manually score each (add a manual_score column to the CSV)
-# Then compare:
-uv run otwarta analyze validate --sample data/validation_sample.csv
-
-# Re-analyze sample with adjusted few-shots:
-uv run otwarta analyze run --force --ids-from data/validation_sample.csv
-```
+- **Scores are LLM judgments.** An 8B local model can vary by ±1 point on the same article
+  and has not been validated against human coders.
+- **dorzeczy.pl paywall:** truncated article bodies may score lower.
+- **Missing dates:** articles with a NULL `publication_date` are excluded from time series.
