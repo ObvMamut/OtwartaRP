@@ -28,10 +28,18 @@ def create_time_series_chart(
     fig = go.Figure()
 
     sites = [site] if site else plot_df["site"].unique().tolist()
-    colors = {"dorzeczy": "#E63946", "pch24": "#457B9D"}
+    # Each site gets two distinct colors: one for antisemitism, one for hate
+    site_colors = {
+        "dorzeczy": {"severity": "#E63946", "hate": "#F4A261"},
+        "pch24":    {"severity": "#2A78D6", "hate": "#2A9D8F"},
+    }
+    has_hateful = "hateful_score" in plot_df.columns
 
     for s in sites:
         site_df = plot_df[plot_df["site"] == s] if not site else plot_df
+        sev_color  = site_colors.get(s, {}).get("severity", "#E63946")
+        hate_color = site_colors.get(s, {}).get("hate",     "#F4A261")
+
         rolling = (
             site_df["severity_score"]
             .rolling(f"{window_days}D", min_periods=5)
@@ -40,10 +48,26 @@ def create_time_series_chart(
         fig.add_trace(go.Scatter(
             x=rolling.index,
             y=rolling.values,
-            name=f"{s} ({window_days}-day avg)",
+            name=f"{s} — antisemitism ({window_days}-day avg)",
             mode="lines",
-            line=dict(color=colors.get(s, "#333"), width=2),
+            line=dict(color=sev_color, width=2),
         ))
+
+        if has_hateful:
+            hate_df = site_df.dropna(subset=["hateful_score"])
+            if not hate_df.empty:
+                hate_rolling = (
+                    hate_df["hateful_score"]
+                    .rolling(f"{window_days}D", min_periods=5)
+                    .mean()
+                )
+                fig.add_trace(go.Scatter(
+                    x=hate_rolling.index,
+                    y=hate_rolling.values,
+                    name=f"{s} — general hate ({window_days}-day avg)",
+                    mode="lines",
+                    line=dict(color=hate_color, width=2, dash="dot"),
+                ))
 
     fig.add_vline(
         x=OCT_7.timestamp() * 1000,
