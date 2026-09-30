@@ -9,245 +9,913 @@
     body { background: #f0f2f5; }
     .card { border: none; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     #log-console {
-      background: #1e1e1e;
-      color: #d4d4d4;
-      font-family: 'Courier New', monospace;
-      font-size: 0.78rem;
-      height: 300px;
-      overflow-y: auto;
-      padding: 0.75rem;
-      border-radius: 0.375rem;
-      line-height: 1.5;
+      background: #1e1e1e; color: #d4d4d4;
+      font-family: 'Courier New', monospace; font-size: 0.78rem;
+      height: 300px; overflow-y: auto; padding: 0.75rem;
+      border-radius: 0.375rem; line-height: 1.5;
     }
     .progress { height: 6px; }
+    .nav-tabs { border-bottom: 2px solid #dee2e6; }
+    .nav-tabs .nav-link { color: #6c757d; border: none; padding: 0.6rem 1.1rem; }
+    .nav-tabs .nav-link:hover { color: #495057; background: rgba(0,0,0,.03); border-radius: 0.375rem 0.375rem 0 0; }
+    .nav-tabs .nav-link.active { color: #212529; font-weight: 600; border-bottom: 2px solid #0d6efd; margin-bottom: -2px; }
+    .chart-placeholder {
+      background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 0.375rem;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 380px; color: #6c757d; font-size: .9rem;
+    }
+    .stat-box { border: 1px solid #dee2e6; border-radius: .5rem; padding: .75rem 1rem; }
+    .stat-box .label { font-size: .75rem; color: #6c757d; text-transform: uppercase; letter-spacing: .05em; }
+    .stat-box .value { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+    .stat-box .sub { font-size: .78rem; color: #6c757d; }
   </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark mb-4 px-3">
-  <span class="navbar-brand fw-bold">otwarta research tool</span>
+<nav class="navbar navbar-dark bg-dark px-3" style="height:52px;">
+  <span class="navbar-brand fw-bold fs-5">otwarta research tool</span>
   <span class="badge bg-secondary fs-6" id="task-badge">● idle</span>
 </nav>
 
-<div class="container-fluid px-4">
+<div class="container-fluid px-4 pt-3">
 
-  <!-- Row 1 -->
-  <div class="row g-3 mb-3">
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-control" type="button">
+        ⚙ Control Panel
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-kf-btn" data-bs-toggle="tab" data-bs-target="#tab-keywords" type="button">
+        🔍 Keyword Frequency
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-ar-btn" data-bs-toggle="tab" data-bs-target="#tab-results" type="button">
+        📊 AI Analysis Results
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-art-btn" data-bs-toggle="tab" data-bs-target="#tab-articles" type="button">
+        📰 Articles
+      </button>
+    </li>
+  </ul>
 
-    <!-- Status -->
-    <div class="col-md-3">
-      <div class="card h-100">
-        <div class="card-header fw-semibold">Status</div>
-        <div class="card-body">
-          <p class="mb-1 small">Articles scraped: <strong id="scraped">—</strong></p>
-          <p class="mb-2 small">Analyzed: <strong id="analyzed">—</strong> (<span id="pct">—</span>%)</p>
-          <div class="progress">
-            <div class="progress-bar bg-success" id="progress-bar" style="width:0%"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="tab-content">
 
-    <!-- DB -->
-    <div class="col-md-2">
-      <div class="card h-100">
-        <div class="card-header fw-semibold">Database</div>
-        <div class="card-body d-flex align-items-center">
-          <button class="btn btn-sm btn-outline-secondary w-100 action-btn" onclick="dbInit()">
-            Initialize DB
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- ═══════════════════════════════════════════════════
+         TAB 1 — Control Panel
+    ═══════════════════════════════════════════════════ -->
+    <div class="tab-pane fade show active" id="tab-control" role="tabpanel">
 
-    <!-- Scrape -->
-    <div class="col-md-3">
-      <div class="card h-100">
-        <div class="card-header fw-semibold">Scrape</div>
-        <div class="card-body">
-          <select class="form-select form-select-sm mb-2" id="scrape-site">
-            <option value="dorzeczy">dorzeczy.pl</option>
-            <option value="pch24">pch24.pl</option>
-          </select>
-          <div class="row g-1 mb-2">
-            <div class="col-6">
-              <input type="date" class="form-control form-control-sm" id="scrape-start" value="2022-10-07">
+      <div class="row g-3 mb-3">
+        <!-- Status -->
+        <div class="col-md-3">
+          <div class="card h-100">
+            <div class="card-header fw-semibold">Status</div>
+            <div class="card-body">
+              <p class="mb-1 small">Articles scraped: <strong id="scraped">—</strong></p>
+              <p class="mb-1 small">Keyword-matched: <strong id="keyword-matched">—</strong></p>
+              <p class="mb-1 small">AI analyzed: <strong id="ai-analyzed">—</strong> / <span id="ai-total">—</span> (<span id="ai-pct">—</span>%)</p>
+              <div class="progress mt-2">
+                <div class="progress-bar bg-success" id="progress-bar" style="width:0%"></div>
+              </div>
             </div>
-            <div class="col-6">
-              <input type="date" class="form-control form-control-sm" id="scrape-end" value="2024-10-07">
+          </div>
+        </div>
+
+        <!-- DB -->
+        <div class="col-md-2">
+          <div class="card h-100">
+            <div class="card-header fw-semibold">Database</div>
+            <div class="card-body d-flex align-items-center">
+              <button class="btn btn-sm btn-outline-secondary w-100 action-btn" onclick="dbInit()">
+                Initialize DB
+              </button>
             </div>
           </div>
-          <button class="btn btn-sm btn-primary w-100 action-btn" onclick="startScrape()">
-            Start Scraping
-          </button>
         </div>
-      </div>
-    </div>
 
-    <!-- Analyze -->
-    <div class="col-md-4">
-      <div class="card h-100">
-        <div class="card-header fw-semibold">Analyze</div>
-        <div class="card-body">
-          <label class="form-label small mb-1">
-            Workers: <strong id="workers-val">8</strong>
-          </label>
-          <input type="range" class="form-range mb-2" id="workers" min="1" max="16" value="8"
-                 oninput="document.getElementById('workers-val').textContent=this.value">
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="resume" checked>
-            <label class="form-check-label small" for="resume">Resume (skip already analyzed)</label>
+        <!-- Scrape -->
+        <div class="col-md-3">
+          <div class="card h-100">
+            <div class="card-header fw-semibold">Scrape</div>
+            <div class="card-body">
+              <select class="form-select form-select-sm mb-2" id="scrape-site">
+                <option value="dorzeczy">dorzeczy.pl</option>
+                <option value="pch24">pch24.pl</option>
+              </select>
+              <div class="row g-1 mb-2">
+                <div class="col-6">
+                  <input type="date" class="form-control form-control-sm" id="scrape-start" value="2022-10-07">
+                </div>
+                <div class="col-6">
+                  <input type="date" class="form-control form-control-sm" id="scrape-end" value="2024-10-07">
+                </div>
+              </div>
+              <button class="btn btn-sm btn-primary w-100 action-btn" onclick="startScrape()">
+                Start Scraping
+              </button>
+            </div>
           </div>
-          <button class="btn btn-sm btn-success w-100 action-btn" onclick="startAnalyze()">
-            Start Analysis
-          </button>
+        </div>
+
+        <!-- Analyze -->
+        <div class="col-md-4">
+          <div class="card h-100">
+            <div class="card-header fw-semibold">Analyze</div>
+            <div class="card-body">
+              <label class="form-label small mb-1">
+                Workers: <strong id="workers-val">2</strong>
+              </label>
+              <input type="range" class="form-range mb-2" id="workers" min="1" max="16" value="2"
+                     oninput="$('workers-val').textContent=this.value">
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="resume" checked>
+                <label class="form-check-label small" for="resume">Resume (skip already analyzed)</label>
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-success flex-fill action-btn" id="btn-start-analyze" onclick="startAnalyze()">
+                  Start Analysis
+                </button>
+                <button class="btn btn-sm btn-danger flex-fill d-none" id="btn-stop-analyze" onclick="stopAnalyze()">
+                  Stop
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate standalone report -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header fw-semibold">Generate Standalone HTML Report</div>
+            <div class="card-body row g-2 align-items-end">
+              <div class="col-5">
+                <label class="form-label small mb-1">Output directory</label>
+                <input type="text" class="form-control form-control-sm" id="viz-output" value="data/processed">
+              </div>
+              <div class="col-3">
+                <label class="form-label small mb-1">Cutoff date</label>
+                <input type="date" class="form-control form-control-sm" id="viz-cutoff" value="2023-10-07">
+              </div>
+              <div class="col-4">
+                <button class="btn btn-sm btn-warning w-100 action-btn" onclick="startVisualize()">
+                  Generate Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live logs -->
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="small text-muted text-uppercase">Live Logs</strong>
+            <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()">Clear</button>
+          </div>
+          <div id="log-console"></div>
         </div>
       </div>
     </div>
 
-  </div>
+    <!-- ═══════════════════════════════════════════════════
+         TAB 2 — Keyword Frequency
+    ═══════════════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="tab-keywords" role="tabpanel">
 
-  <!-- Row 2: Visualize -->
-  <div class="row g-3 mb-3">
-    <div class="col-md-6">
+      <!-- Controls -->
+      <div class="card mb-3">
+        <div class="card-header fw-semibold">Filters</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold mb-2">Keyword groups</label>
+            <div class="d-flex flex-wrap gap-2" id="kf-group-checks">
+              <span class="text-muted small">Loading groups…</span>
+            </div>
+          </div>
+          <div class="row g-3 align-items-end">
+            <div class="col-auto">
+              <label class="form-label small fw-semibold mb-1">Site</label><br>
+              <div class="btn-group btn-group-sm" id="kf-site-group" role="group">
+                <button type="button" class="btn btn-outline-secondary active" onclick="kfSetSite('all',this)">All</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="kfSetSite('dorzeczy',this)">dorzeczy</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="kfSetSite('pch24',this)">pch24</button>
+              </div>
+            </div>
+            <div class="col-auto">
+              <label class="form-label small fw-semibold mb-1">Granularity</label><br>
+              <div class="btn-group btn-group-sm" id="kf-gran-group" role="group">
+                <button type="button" class="btn btn-outline-secondary" onclick="kfSetGran('week',this)">Weekly</button>
+                <button type="button" class="btn btn-outline-secondary active" onclick="kfSetGran('month',this)">Monthly</button>
+              </div>
+            </div>
+            <div class="col-auto">
+              <label class="form-label small fw-semibold mb-1">Cutoff marker</label>
+              <input type="date" class="form-control form-control-sm" id="kf-cutoff" value="2023-10-07"
+                     onchange="kfRenderCharts()">
+            </div>
+            <div class="col-auto ms-auto">
+              <button class="btn btn-sm btn-primary" onclick="loadKeywordFrequency()">
+                Load Data
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State: initial -->
+      <div id="kf-empty" class="chart-placeholder">
+        Select keyword groups above and click <strong class="ms-1">Load Data</strong>.
+      </div>
+
+      <!-- State: loading -->
+      <div id="kf-loading" class="d-none text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted small">Computing keyword frequencies — this may take 10–30 s for large corpora</p>
+      </div>
+
+      <!-- State: charts -->
+      <div id="kf-charts" class="d-none">
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Articles mentioning ≥1 keyword per period</div>
+          <div class="card-body p-2">
+            <div id="kf-chart-articles" style="height:360px;"></div>
+          </div>
+        </div>
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Total keyword hits per period</div>
+          <div class="card-body p-2">
+            <div id="kf-chart-hits" style="height:360px;"></div>
+          </div>
+        </div>
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Per-keyword article count heatmap</div>
+          <div class="card-body p-2">
+            <div id="kf-chart-heatmap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State: error -->
+      <div id="kf-error" class="d-none alert alert-danger mt-2"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         TAB 3 — AI Analysis Results
+    ═══════════════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="tab-results" role="tabpanel">
+
+      <!-- Controls -->
+      <div class="card mb-3">
+        <div class="card-header fw-semibold">Filters</div>
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-auto">
+              <label class="form-label small fw-semibold mb-1">Site</label><br>
+              <div class="btn-group btn-group-sm" id="ar-site-group" role="group">
+                <button type="button" class="btn btn-outline-secondary active" onclick="arSetSite('all',this)">All</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="arSetSite('dorzeczy',this)">dorzeczy</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="arSetSite('pch24',this)">pch24</button>
+              </div>
+            </div>
+            <div class="col-auto">
+              <label class="form-label small fw-semibold mb-1">Cutoff date</label>
+              <input type="date" class="form-control form-control-sm" id="ar-cutoff" value="2023-10-07">
+            </div>
+            <div class="col-auto ms-auto">
+              <button class="btn btn-sm btn-primary" onclick="loadAnalysisData()">
+                Load Results
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State: initial -->
+      <div id="ar-empty" class="chart-placeholder">
+        Click <strong class="mx-1">Load Results</strong> to view analysis charts.<br>
+        <span class="small text-muted mt-1 d-block">Requires completed Gemini analysis (run from Control Panel).</span>
+      </div>
+
+      <!-- State: loading -->
+      <div id="ar-loading" class="d-none text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted small">Loading analysis results…</p>
+      </div>
+
+      <!-- State: no data error -->
+      <div id="ar-error" class="d-none alert alert-warning mt-2">
+        No analyzed articles found. Run analysis from the Control Panel first.
+      </div>
+
+      <!-- State: results -->
+      <div id="ar-content" class="d-none">
+        <!-- Stats -->
+        <div class="card mb-3">
+          <div class="card-header fw-semibold d-flex align-items-center gap-2">
+            Statistical Summary
+            <span class="badge rounded-pill" style="background:#E63946;font-weight:500;">● Antisemitism</span>
+            <span class="badge rounded-pill" style="background:#F4A261;font-weight:500;">▲ General hate</span>
+          </div>
+          <div class="card-body pb-2">
+            <p class="small text-muted mb-2 fw-semibold">Antisemitism score</p>
+            <div class="row g-3 mb-3" id="ar-stats-grid"></div>
+            <hr class="my-2">
+            <p class="small text-muted mb-2 fw-semibold">General hate score (anti-migration, anti-LGBT, anti-Muslim, etc.)</p>
+            <div class="row g-3" id="ar-hate-stats-grid"></div>
+          </div>
+        </div>
+        <!-- Time series -->
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Antisemitism Severity Over Time (30-day rolling average)</div>
+          <div class="card-body p-2">
+            <div id="ar-chart-ts" style="height:500px;"></div>
+          </div>
+        </div>
+        <!-- Comparison -->
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Score Distribution — Pre vs Post Cutoff</div>
+          <div class="card-body p-2">
+            <div id="ar-chart-comp" style="height:500px;"></div>
+          </div>
+        </div>
+        <!-- Scatter -->
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Per-Article Score Scatter (Weekly Mean Overlay)</div>
+          <div class="card-body p-2">
+            <div id="ar-chart-scatter" style="height:520px;"></div>
+          </div>
+        </div>
+        <!-- Site comparison -->
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Antisemitism vs General Hate by Site (30-day rolling avg)</div>
+          <div class="card-body p-2">
+            <div id="ar-chart-site-cmp" style="height:500px;"></div>
+          </div>
+        </div>
+        <!-- Trope evolution -->
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Antisemitic Trope Category Evolution</div>
+          <div class="card-body p-2">
+            <div id="ar-chart-tropes" style="height:500px;"></div>
+          </div>
+        </div>
+        <!-- Mention frequency -->
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Monthly Analyzed Article Frequency</div>
+          <div class="card-body p-2">
+            <div id="ar-chart-freq" style="height:450px;"></div>
+          </div>
+        </div>
+        <!-- Frequency vs score -->
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Article Frequency vs Mean Antisemitism Score</div>
+          <div class="card-body p-2">
+            <div id="ar-chart-freq-score" style="height:450px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         TAB 4 — Articles Browser
+    ═══════════════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="tab-articles" role="tabpanel">
       <div class="card">
-        <div class="card-header fw-semibold">Visualize</div>
-        <div class="card-body row g-2 align-items-end">
-          <div class="col-5">
-            <label class="form-label small mb-1">Output directory</label>
-            <input type="text" class="form-control form-control-sm" id="viz-output" value="data/processed">
+        <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+          Articles
+          <span class="badge bg-secondary" id="articles-total">—</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-2 mb-3">
+            <div class="col-md-5">
+              <input type="text" class="form-control form-control-sm" id="art-q"
+                     placeholder="Search title or body…" oninput="debounceSearch()">
+            </div>
+            <div class="col-md-3">
+              <select class="form-select form-select-sm" id="art-site" onchange="loadArticles(1)">
+                <option value="">All sites</option>
+                <option value="dorzeczy">dorzeczy.pl</option>
+                <option value="pch24">pch24.pl</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select class="form-select form-select-sm" id="art-per-page" onchange="loadArticles(1)">
+                <option value="20">20 / page</option>
+                <option value="50">50 / page</option>
+                <option value="100">100 / page</option>
+              </select>
+            </div>
           </div>
-          <div class="col-3">
-            <label class="form-label small mb-1">Cutoff date</label>
-            <input type="date" class="form-control form-control-sm" id="viz-cutoff" value="2023-10-07">
+          <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th>Date</th><th>Site</th><th>Title</th><th>Author</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="art-tbody">
+                <tr><td colspan="5" class="text-center text-muted py-3">Loading…</td></tr>
+              </tbody>
+            </table>
           </div>
-          <div class="col-4">
-            <button class="btn btn-sm btn-warning w-100 action-btn" onclick="startVisualize()">
-              Generate Charts
-            </button>
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <span class="small text-muted" id="art-page-info">—</span>
+            <div>
+              <button class="btn btn-sm btn-outline-secondary me-1" id="art-prev"
+                      onclick="loadArticles(artPage-1)" disabled>‹ Prev</button>
+              <button class="btn btn-sm btn-outline-secondary" id="art-next"
+                      onclick="loadArticles(artPage+1)" disabled>Next ›</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Logs -->
-  <div class="row g-3">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <strong class="small text-muted text-uppercase">Live Logs</strong>
-        <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()">Clear</button>
+  </div><!-- /tab-content -->
+</div><!-- /container-fluid -->
+
+<!-- Article modal (global) -->
+<div class="modal fade" id="artModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="artModalTitle">Article</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div id="log-console"></div>
+      <div class="modal-body">
+        <p class="text-muted small mb-2" id="artModalMeta"></p>
+        <pre id="artModalBody" style="white-space:pre-wrap;font-family:inherit;font-size:.9rem;"></pre>
+      </div>
+      <div class="modal-footer">
+        <a id="artModalLink" href="#" target="_blank" class="btn btn-sm btn-outline-secondary">Open original ↗</a>
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
+</div>
 
-</div><!-- /container -->
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script>
-  // ── Helpers ──────────────────────────────────────────────────────────────
-  const $ = id => document.getElementById(id);
-  const api = (path, opts) =>
-    fetch(path, opts).then(r => r.ok ? r.json() : Promise.reject(r.statusText));
+// ── Helpers ──────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const api = (path, opts) =>
+  fetch(path, opts).then(r => r.ok ? r.json() : Promise.reject(r.statusText));
 
-  // ── Status polling (every 5 s) ────────────────────────────────────────────
-  async function refreshStatus() {
-    try {
-      const d = await api('/api/status');
-      $('scraped').textContent = d.articles_scraped;
-      $('analyzed').textContent = d.articles_analyzed;
-      $('pct').textContent = d.percent;
-      $('progress-bar').style.width = d.percent + '%';
-    } catch (_) {}
-  }
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-  async function refreshTask() {
-    try {
-      const d = await api('/api/task');
-      const running = d.status === 'running';
-      const badge = $('task-badge');
-      badge.textContent = running ? `● ${d.name}` : `● ${d.status}`;
-      badge.className = 'badge fs-6 ' + (
-        running          ? 'bg-warning text-dark' :
-        d.status==='error'  ? 'bg-danger'           :
-        d.status==='done'   ? 'bg-success'           : 'bg-secondary'
-      );
-      document.querySelectorAll('.action-btn').forEach(b => b.disabled = running);
-    } catch (_) {}
-  }
+function btnGroupSelect(groupId, active) {
+  document.getElementById(groupId)
+    .querySelectorAll('.btn')
+    .forEach(b => b.classList.toggle('active', b === active));
+}
 
-  setInterval(() => { refreshStatus(); refreshTask(); }, 5000);
+// ── Status / Task polling ────────────────────────────────────────────────
+async function refreshStatus() {
+  try {
+    const d = await api('/api/status');
+    $('scraped').textContent = d.articles_scraped.toLocaleString();
+  } catch (_) {}
+}
+
+async function refreshProgress() {
+  try {
+    const d = await api('/api/analyze-progress');
+    $('keyword-matched').textContent = d.keyword_matched.toLocaleString();
+    $('ai-analyzed').textContent     = d.ai_analyzed.toLocaleString();
+    $('ai-total').textContent        = d.keyword_matched.toLocaleString();
+    $('ai-pct').textContent          = d.pct;
+    $('progress-bar').style.width    = d.pct + '%';
+  } catch (_) {}
+}
+
+async function refreshTask() {
+  try {
+    const d = await api('/api/task');
+    const analysisRunning = d.status === 'running' && d.name === 'analyze';
+    const anyRunning = d.status === 'running';
+    const badge = $('task-badge');
+    badge.textContent = anyRunning ? `● ${d.name}` : `● ${d.status}`;
+    badge.className = 'badge fs-6 ' + (
+      anyRunning          ? 'bg-warning text-dark' :
+      d.status==='error'  ? 'bg-danger'            :
+      d.status==='done'   ? 'bg-success'            : 'bg-secondary'
+    );
+    document.querySelectorAll('.action-btn').forEach(b => b.disabled = anyRunning);
+    $('btn-start-analyze').classList.toggle('d-none', analysisRunning);
+    $('btn-stop-analyze').classList.toggle('d-none', !analysisRunning);
+  } catch (_) {}
+}
+
+setInterval(() => { refreshStatus(); refreshTask(); refreshProgress(); }, 3000);
+refreshStatus();
+refreshProgress();
+refreshTask();
+
+// ── Control Panel actions ────────────────────────────────────────────────
+async function dbInit() {
+  await api('/api/db/init', { method: 'POST' });
+  log('[dashboard] Database initialized');
   refreshStatus();
-  refreshTask();
+}
 
-  // ── Actions ───────────────────────────────────────────────────────────────
-  async function dbInit() {
-    await api('/api/db/init', { method: 'POST' });
-    log('[dashboard] Database initialized');
-    refreshStatus();
+async function startScrape() {
+  const body = { site: $('scrape-site').value, start: $('scrape-start').value, end: $('scrape-end').value };
+  try {
+    await api('/api/scrape', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    refreshTask();
+  } catch (e) { log(`[error] ${e}`); }
+}
+
+async function startAnalyze() {
+  const body = { workers: parseInt($('workers').value), resume: $('resume').checked };
+  try {
+    await api('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    refreshTask();
+  } catch (e) { log(`[error] ${e}`); }
+}
+
+async function startVisualize() {
+  const body = { output: $('viz-output').value, cutoff: $('viz-cutoff').value };
+  try {
+    await api('/api/visualize', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    refreshTask();
+  } catch (e) { log(`[error] ${e}`); }
+}
+
+async function stopAnalyze() {
+  try {
+    await api('/api/analyze/stop', { method: 'POST' });
+    log('[dashboard] Stop requested — analysis will halt after current batch.');
+    refreshTask();
+  } catch (e) { log(`[error] ${e}`); }
+}
+
+// ── Log console ───────────────────────────────────────────────────────────
+const logEl = $('log-console');
+function log(msg) {
+  const div = document.createElement('div');
+  div.textContent = msg;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLogs() { logEl.innerHTML = ''; }
+
+const evtSource = new EventSource('/api/logs');
+evtSource.onmessage = e => { if (e.data) log(e.data); };
+evtSource.onerror   = () => log('[connection lost — reload to reconnect]');
+
+// ── Articles browser ─────────────────────────────────────────────────────
+let artPage = 1;
+let _searchTimer = null;
+
+function debounceSearch() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => loadArticles(1), 350);
+}
+
+async function loadArticles(page = 1) {
+  artPage = page;
+  const q       = $('art-q').value.trim();
+  const site    = $('art-site').value;
+  const perPage = $('art-per-page').value;
+  const params  = new URLSearchParams({ page, per_page: perPage });
+  if (q)    params.set('q', q);
+  if (site) params.set('site', site);
+
+  const tbody = $('art-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Loading…</td></tr>';
+  try {
+    const d = await api('/api/articles?' + params);
+    $('articles-total').textContent = d.total.toLocaleString();
+    $('art-page-info').textContent  = `Page ${d.page} of ${d.pages}  (${d.total.toLocaleString()} articles)`;
+    $('art-prev').disabled = page <= 1;
+    $('art-next').disabled = page >= d.pages;
+
+    if (!d.articles.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No articles found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = d.articles.map(a => `
+      <tr style="cursor:pointer" onclick="openArticle(${a.id})">
+        <td class="text-nowrap small">${a.publication_date ? a.publication_date.slice(0,10) : '—'}</td>
+        <td><span class="badge bg-secondary">${escHtml(a.site)}</span></td>
+        <td>${escHtml(a.title || '(no title)')}</td>
+        <td class="small text-muted">${escHtml(a.author || '')}</td>
+        <td class="text-end">
+          <button class="btn btn-xs btn-outline-primary btn-sm py-0 px-1"
+                  onclick="event.stopPropagation();openArticle(${a.id})">View</button>
+        </td>
+      </tr>`).join('');
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-danger py-3">Error: ${escHtml(e)}</td></tr>`;
   }
+}
 
-  async function startScrape() {
-    const body = {
-      site:  $('scrape-site').value,
-      start: $('scrape-start').value,
-      end:   $('scrape-end').value,
-    };
-    try {
-      await api('/api/scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      refreshTask();
-    } catch (e) { log(`[error] ${e}`); }
+async function openArticle(id) {
+  const a = await api(`/api/articles/${id}`);
+  $('artModalTitle').textContent = a.title || '(no title)';
+  $('artModalMeta').textContent  =
+    [a.author, a.site, a.publication_date ? a.publication_date.slice(0,10) : null]
+      .filter(Boolean).join(' · ');
+  $('artModalBody').textContent  = a.body || '(no body)';
+  $('artModalLink').href         = a.url;
+  new bootstrap.Modal($('artModal')).show();
+}
+
+// Auto-load articles when tab is shown
+$('tab-art-btn').addEventListener('shown.bs.tab', () => loadArticles(1));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KEYWORD FREQUENCY TAB
+// ═══════════════════════════════════════════════════════════════════════════
+const GROUP_BADGE = {
+  'Jewish identity':         'danger',
+  'Israel / Middle East':    'primary',
+  'Conspiracy':              'warning',
+  'Historical':              'secondary',
+  'Polish-Jewish relations': 'success',
+  'Religious':               'info',
+};
+
+let kfData    = null;
+let kfSite    = 'all';
+let kfGran    = 'month';
+let kfGroups  = [];
+
+async function initKeywordGroups() {
+  try {
+    const d = await api('/api/keyword-groups');
+    kfGroups = Object.keys(d.groups);
+    const container = $('kf-group-checks');
+    container.innerHTML = kfGroups.map(name => {
+      const color = GROUP_BADGE[name] || 'secondary';
+      const id = 'kfg_' + name.replace(/\W+/g, '_');
+      const count = d.groups[name].length;
+      return `
+        <div class="form-check form-check-inline mb-0">
+          <input class="form-check-input" type="checkbox" id="${id}" value="${name}" checked
+                 onchange="kfToggleGroup('${escHtml(name)}', this.checked)">
+          <label class="form-check-label d-flex align-items-center gap-1" for="${id}">
+            <span class="badge text-bg-${color}">${escHtml(name)}</span>
+            <span class="text-muted" style="font-size:.72rem;">${count}</span>
+          </label>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    $('kf-group-checks').innerHTML = `<span class="text-danger small">Failed to load groups: ${escHtml(String(e))}</span>`;
   }
+}
 
-  async function startAnalyze() {
-    const body = {
-      workers: parseInt($('workers').value),
-      resume:  $('resume').checked,
-    };
-    try {
-      await api('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      refreshTask();
-    } catch (e) { log(`[error] ${e}`); }
+function kfToggleGroup(name, checked) {
+  if (checked) { if (!kfGroups.includes(name)) kfGroups.push(name); }
+  else         { kfGroups = kfGroups.filter(g => g !== name); }
+}
+
+function kfSetSite(site, btn) {
+  kfSite = site;
+  btnGroupSelect('kf-site-group', btn);
+}
+
+function kfSetGran(gran, btn) {
+  kfGran = gran;
+  btnGroupSelect('kf-gran-group', btn);
+}
+
+async function loadKeywordFrequency() {
+  $('kf-empty').classList.add('d-none');
+  $('kf-charts').classList.add('d-none');
+  $('kf-error').classList.add('d-none');
+  $('kf-loading').classList.remove('d-none');
+
+  try {
+    const params = new URLSearchParams({
+      granularity: kfGran,
+      site:        kfSite,
+      groups:      kfGroups.join(','),
+    });
+    kfData = await api('/api/keyword-frequency?' + params);
+    kfRenderCharts();
+  } catch (e) {
+    $('kf-loading').classList.add('d-none');
+    $('kf-error').textContent = `Error: ${e}`;
+    $('kf-error').classList.remove('d-none');
   }
+}
 
-  async function startVisualize() {
-    const body = {
-      output: $('viz-output').value,
-      cutoff: $('viz-cutoff').value,
-    };
-    try {
-      await api('/api/visualize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      refreshTask();
-    } catch (e) { log(`[error] ${e}`); }
+function kfCutoffShape() {
+  const x = $('kf-cutoff').value;
+  return {
+    type:'line', x0:x, x1:x, y0:0, y1:1, yref:'paper',
+    line:{ color:'#212529', width:2, dash:'dash' }
+  };
+}
+
+function kfCutoffAnnotation(top) {
+  return {
+    x:$('kf-cutoff').value, y:top ? 1 : 0.98, yref:'paper',
+    text:'Oct 7, 2023', showarrow:false,
+    xanchor:'left', yanchor:'top',
+    font:{ size:11 }, bgcolor:'white', bordercolor:'#ccc', borderwidth:1
+  };
+}
+
+const LAYOUT_BASE = {
+  template:'plotly_white',
+  margin:{ t:10, r:20, b:60, l:60 },
+  xaxis:{ title:'Period', type:'date' },
+  hovermode:'x unified',
+};
+
+function kfRenderCharts() {
+  if (!kfData) return;
+  const { periods, articles_with_match, total_hits, per_keyword } = kfData;
+
+  // Chart 1 — Articles with any match
+  Plotly.react('kf-chart-articles', [
+    {
+      x: periods, y: articles_with_match,
+      type:'scatter', mode:'lines+markers', name:'articles with match',
+      line:{ color:'#2a9d8f', width:2 }, marker:{ size:4 },
+    },
+  ], {
+    ...LAYOUT_BASE, height:360,
+    yaxis:{ title:'Articles', rangemode:'tozero' },
+    shapes:[kfCutoffShape()], annotations:[kfCutoffAnnotation(true)],
+  }, { responsive:true });
+
+  // Chart 2 — Total hits (bar)
+  Plotly.react('kf-chart-hits', [
+    {
+      x: periods, y: total_hits,
+      type:'bar', name:'total keyword hits',
+      marker:{ color:'#e76f51', opacity:0.85 },
+    },
+  ], {
+    ...LAYOUT_BASE, height:360,
+    yaxis:{ title:'Keyword hits', rangemode:'tozero' },
+    bargap:0.1,
+    shapes:[kfCutoffShape()], annotations:[kfCutoffAnnotation(true)],
+  }, { responsive:true });
+
+  // Chart 3 — Heatmap (keywords × periods)
+  const keywords  = Object.keys(per_keyword);
+  const zData     = keywords.map(kw => per_keyword[kw]);
+  const heatH     = Math.max(380, keywords.length * 20 + 80);
+  $('kf-chart-heatmap').style.height = heatH + 'px';
+
+  Plotly.react('kf-chart-heatmap', [
+    {
+      type:'heatmap',
+      x: periods, y: keywords, z: zData,
+      colorscale:'YlOrRd',
+      showscale:true,
+      colorbar:{ title:'Articles', thickness:15 },
+      hovertemplate:'%{y}<br>%{x}<br>%{z} articles<extra></extra>',
+    },
+  ], {
+    template:'plotly_white',
+    height: heatH,
+    margin:{ t:10, r:80, b:80, l:170 },
+    xaxis:{ title:'Period', type:'date' },
+    yaxis:{ title:'', automargin:true },
+    shapes:[{
+      type:'line', x0:$('kf-cutoff').value, x1:$('kf-cutoff').value,
+      y0:0, y1:1, yref:'paper',
+      line:{ color:'white', width:2, dash:'dash' }
+    }],
+  }, { responsive:true });
+
+  $('kf-loading').classList.add('d-none');
+  $('kf-charts').classList.remove('d-none');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AI ANALYSIS RESULTS TAB
+// ═══════════════════════════════════════════════════════════════════════════
+let arSite      = 'all';
+let arFirstLoad = false;
+
+function arSetSite(site, btn) {
+  arSite = site;
+  btnGroupSelect('ar-site-group', btn);
+}
+
+async function loadAnalysisData() {
+  $('ar-empty').classList.add('d-none');
+  $('ar-error').classList.add('d-none');
+  $('ar-content').classList.add('d-none');
+  $('ar-loading').classList.remove('d-none');
+
+  try {
+    const params = new URLSearchParams({ site: arSite, cutoff: $('ar-cutoff').value });
+    const d = await api('/api/analysis-data?' + params);
+
+    if (d.error) {
+      $('ar-loading').classList.add('d-none');
+      $('ar-error').classList.remove('d-none');
+      return;
+    }
+
+    // Stats grid helper
+    function renderStatsGrid(elId, s, scoreLabel) {
+      if (!s || !Object.keys(s).length) {
+        $(elId).innerHTML = '<div class="col"><p class="text-muted small mb-0">Not enough data to compute statistics.</p></div>';
+        return;
+      }
+      const sig = s.significant
+        ? '<span class="badge text-bg-success">significant (p &lt; 0.05)</span>'
+        : '<span class="badge text-bg-secondary">not significant</span>';
+      const effectLabel = Math.abs(s.cohens_d) < 0.2 ? 'negligible'
+        : Math.abs(s.cohens_d) < 0.5 ? 'small'
+        : Math.abs(s.cohens_d) < 0.8 ? 'medium' : 'large';
+      const nPre  = s.n_pre  != null ? s.n_pre.toLocaleString()  : '—';
+      const nPost = s.n_post != null ? s.n_post.toLocaleString() : '—';
+      $(elId).innerHTML = `
+        <div class="col">
+          <div class="stat-box">
+            <div class="label">Pre-cutoff mean</div>
+            <div class="value">${s.mean_pre.toFixed(2)}</div>
+            <div class="sub">${nPre} articles</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="stat-box">
+            <div class="label">Post-cutoff mean</div>
+            <div class="value">${s.mean_post.toFixed(2)}</div>
+            <div class="sub">${nPost} articles</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="stat-box">
+            <div class="label">Mann-Whitney p-value</div>
+            <div class="value">${s.p_value.toFixed(4)}</div>
+            <div class="sub">${sig}</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="stat-box">
+            <div class="label">Cohen's d</div>
+            <div class="value">${s.cohens_d.toFixed(2)}</div>
+            <div class="sub">${effectLabel}</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="stat-box">
+            <div class="label">Post 95% CI (bootstrap)</div>
+            <div class="value">[${s.ci_lo.toFixed(2)}, ${s.ci_hi.toFixed(2)}]</div>
+            <div class="sub">mean ${scoreLabel}</div>
+          </div>
+        </div>`;
+    }
+
+    renderStatsGrid('ar-stats-grid',      d.stats || {},      'antisemitism score');
+    renderStatsGrid('ar-hate-stats-grid', d.hate_stats || {}, 'hate score');
+
+    // Charts (server returns fig.to_json() strings)
+    const ts         = JSON.parse(d.time_series);
+    const comp       = JSON.parse(d.comparison);
+    const scatter    = JSON.parse(d.scatter);
+    const siteCmp    = JSON.parse(d.site_comparison);
+    const tropes     = JSON.parse(d.trope_evolution);
+    const freq       = JSON.parse(d.mention_frequency);
+    const freqScore  = JSON.parse(d.frequency_vs_score);
+    Plotly.react('ar-chart-ts',         ts.data,        ts.layout,        { responsive:true });
+    Plotly.react('ar-chart-comp',       comp.data,      comp.layout,      { responsive:true });
+    Plotly.react('ar-chart-scatter',    scatter.data,   scatter.layout,   { responsive:true });
+    Plotly.react('ar-chart-site-cmp',   siteCmp.data,   siteCmp.layout,   { responsive:true });
+    Plotly.react('ar-chart-tropes',     tropes.data,    tropes.layout,    { responsive:true });
+    Plotly.react('ar-chart-freq',       freq.data,      freq.layout,      { responsive:true });
+    Plotly.react('ar-chart-freq-score', freqScore.data, freqScore.layout, { responsive:true });
+
+    $('ar-loading').classList.add('d-none');
+    $('ar-content').classList.remove('d-none');
+    arFirstLoad = true;
+  } catch (e) {
+    $('ar-loading').classList.add('d-none');
+    $('ar-error').textContent = `Error loading results: ${e}`;
+    $('ar-error').classList.remove('d-none');
   }
+}
 
-  // ── Log console ───────────────────────────────────────────────────────────
-  const logEl = $('log-console');
+// Auto-load results on first visit to the tab
+$('tab-ar-btn').addEventListener('shown.bs.tab', () => {
+  if (!arFirstLoad) loadAnalysisData();
+});
 
-  function log(msg) {
-    const div = document.createElement('div');
-    div.textContent = msg;
-    logEl.appendChild(div);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  function clearLogs() { logEl.innerHTML = ''; }
-
-  const evtSource = new EventSource('/api/logs');
-  evtSource.onmessage = e => { if (e.data) log(e.data); };
-  evtSource.onerror   = () => log('[connection lost — reload to reconnect]');
+// ── Boot ─────────────────────────────────────────────────────────────────
+initKeywordGroups();
+loadArticles(1);
 </script>
 </body>
 </html>

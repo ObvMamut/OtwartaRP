@@ -20,7 +20,7 @@ def client(tmp_path):
     # Patch loguru sink registration so tests don't accumulate sinks
     with patch("otwarta.dashboard.server._add_loguru_sink"):
         from otwarta.dashboard.server import create_app
-        app = create_app(db_url=f"sqlite:///{tmp_path}/test.db", api_key="test-key")
+        app = create_app(db_url=f"sqlite:///{tmp_path}/test.db")
     return TestClient(app)
 
 
