@@ -47,12 +47,18 @@ def save_analysis(
     prompt_tokens: int,
     completion_tokens: int,
     cache_read_tokens: int,
+    hateful_score: float | None = None,
+    secondary_model_id: str | None = None,
+    secondary_model_score: float | None = None,
 ) -> None:
     result = AnalysisResult(
         article_id=article_id,
         analysis_config=config,
         model_id=model_id,
         severity_score=severity_score,
+        hateful_score=hateful_score,
+        secondary_model_id=secondary_model_id,
+        secondary_model_score=secondary_model_score,
         result_json=result_json,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
