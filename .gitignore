@@ -14,3 +14,8 @@ htmlcov/
 data/raw/*.db
 logs/*.log
 notebooks/.ipynb_checkpoints/
+data/raw/*.db-wal
+data/raw/*.db-shm
+logs/*
+!logs/.gitkeep
+
