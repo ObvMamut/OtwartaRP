@@ -1,6 +1,6 @@
 # Generic analysis template — copy and customize for new analyses
 name: my_analysis
-model: llm-model
+# Models are set via PRIMARY_MODEL / SECONDARY_MODEL (Ollama; default llama3.1 / mistral-nemo)
 max_tokens: 1024
 
 what_to_detect: |

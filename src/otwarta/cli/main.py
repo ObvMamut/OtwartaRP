@@ -49,15 +49,14 @@ def dashboard_cmd(
 ) -> None:
     """Launch the web dashboard in your browser."""
     import webbrowser
+
     import uvicorn
-    from otwarta.dashboard.server import create_app
+
     from otwarta.config.settings import Settings
+    from otwarta.dashboard.server import create_app
 
     settings = Settings()
-    dash_app = create_app(
-        db_url=str(settings.database_url),
-        api_key=settings.gemini_api_key.get_secret_value(),
-    )
+    dash_app = create_app(db_url=str(settings.database_url))
 
     url = f"http://localhost:{port}"
     typer.echo(f"Dashboard running at {url}  (Ctrl+C to stop)")
@@ -110,23 +109,9 @@ def scrape_site(
         engine = init_db(str(settings.database_url))
         scraper_cls = SITE_ADAPTERS[site_name]
 
-        async with scraper_cls() as scraper:  # type: ignore[attr-defined]
-            urls = await scraper.discover_urls_in_range(start_date, end_date)
-            if max_pages:
-                urls = urls[: max_pages * 20]
-            typer.echo(f"  Discovered {len(urls)} URLs")
-            scraped = 0
-            for url in urls:
-                response = await scraper.fetch_or_skip(url)
-                if response is None:
-                    continue
-                article = await scraper.parse_article(response.text, url)
-                if article is None:
-                    continue
-                if article.publication_date and not (
-                    start_date <= article.publication_date.date() <= end_date
-                ):
-                    continue
+        scraped = 0
+        async with scraper_cls() as scraper:
+            async for article in scraper.scrape_in_range(start_date, end_date):
                 with get_session(engine) as session:
                     get_or_create_article(
                         session,
@@ -139,8 +124,10 @@ def scrape_site(
                     )
                     session.commit()
                 scraped += 1
-                if scraped % 100 == 0:
-                    typer.echo(f"  Scraped {scraped} articles so far...")
+                if scraped % 25 == 0:
+                    typer.echo(f"  Saved {scraped} articles so far...")
+                if max_pages and scraped >= max_pages * 20:
+                    break
 
         typer.echo(f"Done. Scraped {scraped} articles from {site_name}.")
 
@@ -174,6 +161,7 @@ def analyze_run(
     import asyncio
 
     from otwarta.analysis.generic_detector import GenericDetector
+    from otwarta.analysis.ollama_client import OllamaAnalysisClient
     from otwarta.config.settings import Settings
     from otwarta.storage.database import get_session, init_db
     from otwarta.storage.models import Article
@@ -181,9 +169,13 @@ def analyze_run(
 
     settings = Settings()
     engine = init_db(str(settings.database_url))
-    detector = GenericDetector(
-        config_path=config, api_key=settings.gemini_api_key.get_secret_value()
+    client = OllamaAnalysisClient(
+        base_url=settings.ollama_base_url,
+        primary_model=settings.primary_model,
+        secondary_model=settings.secondary_model,
+        max_concurrent=workers,
     )
+    detector = GenericDetector(config_path=config, client=client)
 
     async def run() -> None:
         with get_session(engine) as session:
@@ -202,17 +194,21 @@ def analyze_run(
                     title=article.title or "",
                     body=article.body_clean or "",
                 )
+                secondary = result.get("_secondary_model") or {}
                 with get_session(engine) as session:
                     save_analysis(
                         session,
                         article_id=article.id,
                         config=detector.config["name"],
-                        model_id=detector.client.model,
+                        model_id=settings.primary_model,
                         severity_score=result.get("severity_score", 0.0),
                         result_json=result,
                         prompt_tokens=result.get("_tokens", {}).get("input", 0),
                         completion_tokens=result.get("_tokens", {}).get("output", 0),
                         cache_read_tokens=result.get("_tokens", {}).get("cache_read", 0),
+                        hateful_score=result.get("hateful_score"),
+                        secondary_model_id=secondary.get("model"),
+                        secondary_model_score=secondary.get("score"),
                     )
 
         await asyncio.gather(*[analyze_one(a) for a in articles])
@@ -248,15 +244,22 @@ def visualize_all(
             session.query(
                 Article.url,
                 Article.site,
+                Article.title,
                 Article.publication_date,
                 AnalysisResult.severity_score,
+                AnalysisResult.hateful_score,
+                AnalysisResult.result_json,
             )
             .join(AnalysisResult)
             .filter(Article.publication_date.isnot(None))
             .all()
         )
 
-    df = pd.DataFrame(rows, columns=["url", "site", "publication_date", "severity_score"])
+    df = pd.DataFrame(
+        rows,
+        columns=["url", "site", "title", "publication_date", "severity_score",
+                 "hateful_score", "result_json"],
+    )
     if df.empty:
         typer.echo("No analyzed articles found. Run 'otwarta analyze run' first.")
         return

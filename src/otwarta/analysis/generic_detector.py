@@ -5,8 +5,6 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from otwarta.analysis.gemini_client import GeminiAnalysisClient
-
 _DEFAULT_CONFIG: dict[str, Any] = {
     "name": "antisemitism_oct7",
     "keywords": [
@@ -14,15 +12,31 @@ _DEFAULT_CONFIG: dict[str, Any] = {
         "soros", "globalist", "hamas", "gaza", "palestyn",
         "semick", "żydokomuna",
     ],
+    "anti_minority_keywords": [],
     "prompt_file": "antisemitism_oct7_system.txt",
+}
+
+_FILTERED_RESULT: dict[str, Any] = {
+    "severity_score": 0.0,
+    "hateful_score": 0.0,
+    "severity_label": "NONE",
+    "trope_categories": [],
+    "antisemitic_tropes": [],
+    "evidence_sentences": [],
+    "explanation": "Filtered: no relevant keywords",
+    "is_antisemitic": False,
+    "is_about_israel_gaza": False,
+    "_tokens": {"input": 0, "output": 0, "cache_read": 0, "cache_created": 0},
 }
 
 
 class GenericDetector:
-    def __init__(self, config_path: str, api_key: str, model: str = "gemini-2.0-flash"):
+    def __init__(self, config_path: str, client: Any) -> None:
         self.config = self._load_config(config_path)
-        self.client = GeminiAnalysisClient(api_key=api_key, model=model)
-        self._keywords: list[str] = self.config.get("keywords", [])
+        self.client = client
+        keywords = self.config.get("keywords", [])
+        anti_minority = self.config.get("anti_minority_keywords", [])
+        self._keywords: list[str] = keywords + anti_minority
 
     def _load_config(self, config_path: str) -> dict[str, Any]:
         p = Path(config_path)
@@ -44,15 +58,9 @@ class GenericDetector:
 
     async def analyze(self, title: str, body: str) -> dict[str, Any]:
         if not self.passes_keyword_filter(body):
-            return {
-                "severity_score": 0.0,
-                "severity_label": "NONE",
-                "antisemitic_tropes": [],
-                "evidence_sentences": [],
-                "explanation": "Filtered: no relevant keywords",
-                "is_antisemitic": False,
-                "is_about_israel_gaza": False,
-                "_tokens": {"input": 0, "output": 0, "cache_read": 0, "cache_created": 0},
-            }
+            return dict(_FILTERED_RESULT)
         config_name = self.config.get("name", "antisemitism_oct7")
-        return await self.client.analyze_article(title=title, body=body, config_name=config_name)
+        result: dict[str, Any] = await self.client.analyze_article(
+            title=title, body=body, config_name=config_name
+        )
+        return result

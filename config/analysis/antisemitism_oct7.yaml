@@ -4,18 +4,104 @@ description: >
   used to measure change before and after October 7, 2023.
 
 keywords:
+  # Jewish identity / direct antisemitic terms
   - "żyd"
   - "żydzi"
-  - "izrael"
-  - "holokaust"
-  - "antysemit"
-  - "soros"
-  - "globalist"
-  - "hamas"
-  - "gaza"
-  - "palestyn"
-  - "semick"
+  - "żydowsk"
   - "żydokomuna"
+  - "judeobolszew"
+  - "antysemit"
+  - "semick"
+  - "holokaust"
+  - "szoah"
+
+  # Israel / Middle East conflict
+  - "izrael"
+  - "izraelski"
+  - "izraelczyk"
+  - "palestyn"
+  - "zachodni brzeg"
+  - "hamas"
+  - "hezbollah"
+  - "fatah"
+  - "netanjahu"
+  - "netanyahu"
+  - "likud"
+  - "mossad"
+  - "idf"
+  - "tsahal"
+  - "intifada"
+  - "al-aksa"
+  - "kibuc"
+  - "dżihad"
+  - "gaza"
+
+  # Conspiracy / coded language
+  - "soros"
+  - "rothschild"
+  - "rockefeller"
+  - "globalist"
+  - "finansjera"
+  - "kosmopolit"
+  - "bankster"
+  - "masoneri"
+  - "wielki reset"
+  - "schwab"
+  - "davos"
+  - "nowy porządek"
+  - "syjonist"
+  - "syjonizm"
+
+  # Historical
+  - "pogrom"
+  - "getto"
+  - "majdanek"
+  - "auschwitz"
+  - "treblinka"
+  - "rewizjonizm"
+
+  # Polish-Jewish relations
+  - "polin"
+  - "antypolonizm"
+  - "restytucj"
+  - "ustawa 447"
+
+  # Religious
+  - "talmud"
+  - "synagog"
+  - "rabin"
+  - "kabał"
+
+anti_minority_keywords:
+  # Ukrainian / refugee
+  - "ukraina"
+  - "ukraiński"
+  - "ukraińcy"
+  - "uchodźca"
+  - "uchodźcy"
+  - "uchodźstwo"
+  # Migration / foreigners
+  - "migrant"
+  - "migracja"
+  - "imigracja"
+  - "imigrant"
+  - "obcokrajowiec"
+  - "cudzoziemiec"
+  # Muslims / Islam
+  - "muzułman"
+  - "muzułmanie"
+  - "muzułmański"
+  - "islamist"
+  - "islamizacja"
+  # Roma
+  - "romowie"
+  - "cyganie"
+  - "cygan"
+  # LGBT
+  - "lgbt"
+  - "gender"
+  - "transpłciow"
+  - "homoseksual"
 
 prompt_file: "antisemitism_oct7_system.txt"
 
