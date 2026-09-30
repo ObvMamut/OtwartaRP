@@ -2,8 +2,9 @@ import asyncio
 import json
 import logging
 import re
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import httpx
 from bs4 import BeautifulSoup
@@ -104,6 +105,18 @@ class AsyncBaseScraper:
                 except ValueError:
                     pass
         return None
+
+    # Site adapters implement these; the CLI and dashboard call them.
+    async def discover_urls_in_range(self, start_date: date, end_date: date) -> list[str]:
+        raise NotImplementedError
+
+    def scrape_in_range(
+        self, start_date: date, end_date: date
+    ) -> AsyncGenerator[ScrapedArticle, None]:
+        raise NotImplementedError
+
+    async def parse_article(self, html: str, url: str) -> ScrapedArticle | None:
+        raise NotImplementedError
 
     async def __aenter__(self) -> "AsyncBaseScraper":
         return self
